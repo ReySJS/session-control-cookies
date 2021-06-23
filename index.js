@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser')
 const path = require("path");
 const app = express();
 
-app.use(cookieParser())
+app.use(cookieParser());
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -30,9 +30,9 @@ app.get('/', (req, res, next) => {
 });
 //////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////Middleware route to serve the home page////////////////////////
-const messages = []
+const messages = [];
 
-const hackers = []
+const hackers = [];
 
 const users = [
     {
@@ -53,213 +53,146 @@ const users = [
         "token": undefined,
         "admin": false
     }
-]
+];
 
-const ret = {}
-
-ret.header = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Session Control</title>
-        <link rel="stylesheet" href="styles.css" type="text/css">
-    </head>`
+const ret = {};
 
 ret.homePage = `
-    ${ret.header}
-    <body>
-    <form action="/" method="POST">
-        <p>
-            <label for="username">Username: </label>
-            <input type="text" name="username" id="username" />
-        </p>
-        <p>
-            <label for="password">Password: </label>
-            <input type="password" name="password" id="password" />
-        </p>
-        <input class="submit" type="submit" value="Enter" />
-    </form>
-    </body>
-</html>`
+    <p>
+        <label for="input-username">Username: </label>
+        <input type="text" name="username" id="input-username" />
+    </p>
+    <p>
+        <label for="input-password">Password: </label>
+        <input type="password" name="password" id="input-password" />
+    </p>
+    <button class="submit" type="button" id="btn-login">Entrar</button>`;
 
 ret.userErrorPage = `
-${ret.header}
-    <body>
-        <div>
-            <h1>Usuário não encontrado</h1>
-            <form action="/" method="GET">
-                <input class="submit" type="submit" value="Voltar" />
-            </form>
-        </div>
-    </body>
-</html>`
+    <h1>Usuário não encontrado</h1>
+    <button id="btn-home" class="submit" type="button">Voltar</button>`;
 
 ret.tokenErrorPage = `
-${ret.header}
-    <body>
-        <div>
-            <h1>Token Inválido</h1>
-            <form action="/" method="GET">
-                <input class="submit" type="submit" value="Voltar" />
-            </form>
-        </div>
-    </body>
-</html>`
+    <h1>Token Inválido</h1>
+    <button id="btn-home" class="submit" type="button">Voltar</button>`;
 
-app.use('/styles.css', express.static(path.join(__dirname, "/styles.css")));
+ret.messageSent = `
+    <h1>Mensagem Enviada!<br />Responderemos em breve</h1>
+    <button id="btn-home" class="submit" type="submit">Voltar</button>`;
 
-app.get("/", (req, res) => {
-    
-    // Cookies that have not been signed
-    console.log('Cookies: ', req.cookies)
+app.get("/home", (req, res) => res.send(ret.homePage));
 
-    // Cookies that have been signed
-    console.log('Signed Cookies: ', req.signedCookies)
+app.post("/login", (req, res) => {
+    res.setHeader('Content-Type', 'text/html');
 
-    res.send(ret.homePage)
+    const username = req.body.username.toLowerCase();
+    const password = req.body.password;
+
+    const userFilter = users.filter(data => data.username === username && data.password === password);
+    const user = userFilter[0];
+
+    if (!user) {
+        res.send(ret.userErrorPage);
+        return false;
+    }
+
+
+    // // Cookies that have not been signed
+    // console.log('Cookies: ', req.cookies)
+
+    // // Cookies that have been signed
+    // console.log('Signed Cookies: ', req.signedCookies)
+
+
+    // if (!user.token) {
+    //     const findUserToken = users.findIndex(value => value === user);
+    //     users[findUserToken].token = `${new Date().getTime()}:${username}`
+    //     console.log(users);
+    // }
+
+    if (user.admin) {
+        let adminResultMessages = ''
+
+        for (let i = 0; i < messages.length; i++) {
+            adminResultMessages += `
+                <tr>
+                    <td>${messages[i].username}</td>
+                    <td>${messages[i].message}</td>
+                </tr>`
+        }
+
+        const adminResultPage = `
+            <h1>Página do administrador</h1>
+            <h2>Seja bem-vindo <span class="user">${username}</span ></h2>
+            <button id="logout" type="button">Sair</button>  
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th>Mensagem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                ${adminResultMessages}
+                </tbody>
+            </table>`;
+
+        return res.send(adminResultPage);
+    } else {
+
+        const userResultPage = `
+            <h1>Página do usuário</h1>
+            <h2>Seja bem-vindo <span class="user">${username}</span ></h2>
+            <button id="logout" type="button">Sair</button>              
+            <p class="textarea-content">
+                <label for="input-message">Mensagem: </label>
+                <textarea id="input-message" rows="10" cols="30" name="message"></textarea>
+            </p>
+            <button id="send-message" class="submit" type="button">Enviar</button>`;
+
+        return res.send(userResultPage);
+    }
 });
 
-// app.post("/", (req, res) => {
+app.post("/message", (req, res) => {
+    res.setHeader('Content-Type', 'text/html');
 
-//     res.setHeader('Content-Type', 'text/html')
+    const username = req.body.username;
+    const message = req.body.message;
+    const newMessage = { username, message }
 
-//     const username = req.body.username.toLowerCase();
-//     const password = req.body.password;
+    const userFilter = users.filter(data => data.username === username);
+    const user = userFilter[0];
 
-//     const userFilter = users.filter(data => data.username === username && data.password === password)
-//     const user = userFilter[0]
-
-//     if (!user) {
-//         res.send(ret.userErrorPage)
-//         return false
-//     }
-
-
-//     if (!user.token) {
-//         const findUserToken = users.findIndex(value => value === user);
-//         users[findUserToken].token = `${new Date().getTime()}:${username}`
-//         console.log(users);
-//     }
-
-//     const result = {}
-
-//     result.title = `<h2>Seja bem-vindo <span class="user">${username}</span ></h2>`
-
-//     let message = ''
-
-//     for (let i = 0; i < messages.length; i++) {
-//         message += `
-//             <tr>
-//                 <td>${messages[i].username}</td>
-//                 <td>${messages[i].message}</td>
-//             </tr>`
-//     }
-
-//     result.adminPage = `
-//     ${ret.header}
-//         <body>
-//             <div>
-//                 <h1>Página do administrador</h1>
-//                 ${result.title}
-//                 <table>
-//                     <thead>
-//                         <tr>
-//                             <th>Usuário</th>
-//                             <th>Mensagem</th>
-//                         </tr>
-//                     </thead>
-//                     <tbody>
-//                     ${message}
-//                     </tbody>
-//                 </table>
-//             </div>
-//         </body>
-//     </html> `;
-
-//     result.userPage = `
-//     ${ret.header}
-//         <body>
-//             <div>
-//                 <h1>Página do usuário</h1>
-//                 ${result.title}
-//                 <form id="logout" action="/logout" method="POST">
-//                     <input type="hidden" name="session" value=${user.token} />
-//                     <input class="btn-logout" type="submit" value="Logout" />
-//                 </form>
-//                 <form class="pages-form" action="/message" method="POST">
-//                     <input type="hidden" name="username" value=${username} />
-//                     <p class="textarea-content">
-//                         <label for="sub-message">Mensagem: </label>
-//                         <textarea id="sub-message" rows="10" cols="30" name="message"></textarea>
-//                     </p>
-//                     <input type="hidden" name="session" value=${user.token} />
-//                     <input class="submit" type="submit" value="Enviar" />
-//                 </form>
-//             </div>
-//         </body>
-//     </html> `;
-
-//     return user.admin ? res.send(result.adminPage) : res.send(result.userPage)
-// });
-
-// app.post("/message", (req, res) => {
-//     res.setHeader('Content-Type', 'text/html')
-
-//     const username = req.body.username;
-//     const message = req.body.message;
-//     const session = req.body.session;
-//     const newMessage = { username, message, session }
-
-//     const userFilter = users.filter(data => data.token === session)
-//     const user = userFilter[0]
-
-//     if (!user) {
-//         hackers.push(newMessage)
-//         res.send(ret.tokenErrorPage)
-//         return false
-//     }
-
-//     messages.push(newMessage)
-
-//     const finishPage = `
-//     ${ret.header}
-//         <body>
-//             <div>
-//                 <h1>Mensagem Enviada!<br />Responderemos em breve</h1>
-//                 <form action="/" method="GET">
-//                     <input class="submit" type="submit" value="Voltar" />
-//                 </form>
-//             </div>
-//         </body>
-//     </html>`
+    // if (!user) {
+    //     hackers.push(newMessage);
+    //     res.send(ret.tokenErrorPage);
+    //     return false;
+    // }
 
 
-//     res.send(finishPage)
-//     console.log(messages)
-// });
+    messages.push(newMessage);
+    return res.send(ret.messageSent);
+});
 
-// app.post("/logout", (req, res) => {
-//     res.setHeader('Content-Type', 'text/html')
+app.post("/logout", (req, res) => {
+    res.setHeader('Content-Type', 'text/html');
 
-//     const sessionToken = req.body.session
+    const username = req.body.username;
 
-//     const userFilter = users.filter(data => data.token === sessionToken)
-//     const user = userFilter[0]
+    const userFilter = users.filter(data => data.username === username);
+    const user = userFilter[0];
 
-//     if (!user) {
-//         hackers.push(sessionToken)
-//         res.send(ret.tokenErrorPage)
-//         return false
-//     }
+    if (!user) {
+        hackers.push(username);
+        res.send(ret.tokenErrorPage);
+        return false;
+    }
 
-//     const findUserToken = users.findIndex(value => value === user);
-//     users[findUserToken].token = undefined
-//     res.send(ret.homePage)
 
-//     console.log(users);
-// });
+    // const findUserToken = users.findIndex(value => value === user);
+    // users[findUserToken].token = undefined
+    return res.send(ret.homePage);
+});
 
 app.listen(8080);
