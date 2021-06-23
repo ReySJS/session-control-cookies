@@ -35,24 +35,9 @@ const messages = [];
 const hackers = [];
 
 const users = [
-    {
-        "username": "rey",
-        "password": "123456789",
-        "token": undefined,
-        "admin": true
-    },
-    {
-        "username": "user1",
-        "password": "123456",
-        "token": undefined,
-        "admin": false
-    },
-    {
-        "username": "user2",
-        "password": "1234",
-        "token": undefined,
-        "admin": false
-    }
+    { "username": "rey", "password": "123456789", "token": undefined, "admin": true },
+    { "username": "user1", "password": "123456", "token": undefined, "admin": false },
+    { "username": "user2", "password": "1234", "token": undefined, "admin": false }
 ];
 
 const ret = {};
@@ -96,19 +81,7 @@ app.post("/login", (req, res) => {
         return false;
     }
 
-
-    // // Cookies that have not been signed
-    // console.log('Cookies: ', req.cookies)
-
-    // // Cookies that have been signed
-    // console.log('Signed Cookies: ', req.signedCookies)
-
-
-    // if (!user.token) {
-    //     const findUserToken = users.findIndex(value => value === user);
-    //     users[findUserToken].token = `${new Date().getTime()}:${username}`
-    //     console.log(users);
-    // }
+    res.cookie('username', username, { maxAge: 900000, httpOnly: true });
 
     if (user.admin) {
         let adminResultMessages = ''
@@ -155,7 +128,13 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/message", (req, res) => {
-    res.setHeader('Content-Type', 'text/html');
+    // res.setHeader('Content-Type', 'text/html');
+
+    const usernameCookie = req.cookies.username;
+    if (!usernameCookie) {
+        res.status(403).send('ret.tokenErrorPage')
+        // res.send(e)
+    }
 
     const username = req.body.username;
     const message = req.body.message;
@@ -163,13 +142,6 @@ app.post("/message", (req, res) => {
 
     const userFilter = users.filter(data => data.username === username);
     const user = userFilter[0];
-
-    // if (!user) {
-    //     hackers.push(newMessage);
-    //     res.send(ret.tokenErrorPage);
-    //     return false;
-    // }
-
 
     messages.push(newMessage);
     return res.send(ret.messageSent);
@@ -188,7 +160,6 @@ app.post("/logout", (req, res) => {
         res.send(ret.tokenErrorPage);
         return false;
     }
-
 
     // const findUserToken = users.findIndex(value => value === user);
     // users[findUserToken].token = undefined
